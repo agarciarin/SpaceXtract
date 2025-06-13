@@ -214,13 +214,13 @@ def main():
     file = open(dest, 'w')
     cap = extract_video.get_capture(args.capture_path)
 
-    if cap is None or cap.get(cv2.CAP_PROP_FPS) == 0:
-        if extract_video.youtube_url_validation(args.capture_path):
-            print("Cannot access video in URL. Please check the URL is a valid YouTube video")
-            exit(2)
+    # if cap is None or cap.get(cv2.CAP_PROP_FPS) == 0:
+    #     if extract_video.youtube_url_validation(args.capture_path):
+    #         print("Cannot access video in URL. Please check the URL is a valid YouTube video")
+    #         exit(2)
 
-        print("Cannot access video in file. Please make sure the path to the file is valid")
-        exit(3)
+    #     print("Cannot access video in file. Please make sure the path to the file is valid")
+    #     exit(3)
 
     get_data(cap, file, to_float(args.launch_time), args.out, args.destination_path, args.live)
 
