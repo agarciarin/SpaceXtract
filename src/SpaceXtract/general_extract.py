@@ -56,8 +56,10 @@ class BaseExtract:
             img_lst = []
         
             for path in self.image_dict[key][1]:
-                assert os.path.exists(path)
-                img_lst.append(self.prepare_frame(cv2.imread(path), [0, 1, 0, 1]))
+                easy_fix = os.path.dirname(__file__)
+                full_path = os.path.join(os.path.dirname(__file__), '../', path)
+                assert os.path.exists(full_path)
+                img_lst.append(self.prepare_frame(cv2.imread(full_path), [0, 1, 0, 1]))
 
             # Replace path list with template list
             self.image_dict[key][1] = img_lst

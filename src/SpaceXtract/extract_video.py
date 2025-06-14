@@ -2,6 +2,8 @@ import re
 import cv2
 import os
 import streamlink
+from time import sleep
+from yt_dlp import YoutubeDL
 
 
 def youtube_url_validation(url):
@@ -29,7 +31,9 @@ def get_capture(cap_path):
     """
 
     # Check if cap_path is a URL of a YouTube video
-    if youtube_url_validation(cap_path):
+    flag = youtube_url_validation(cap_path)
+    
+    if flag == True:
         return get_capture_from_url(cap_path, '1080p')
 
     return cv2.VideoCapture(cap_path)
@@ -53,12 +57,46 @@ def get_url(youtube_url, res):
     :return: a string of the direct URL of the youtube video.
     """
 
-    streams = streamlink.streams(youtube_url)
-    if res not in streams:
+    # streams = streamlink.streams(youtube_url)
+    # if res not in streams:
+    #     return None
+    # elif type(streams[res]) != streamlink.stream.ffmpegmux.MuxedStream:
+    #     return streams[res].url
+    # return streams[res].substreams[0].url
+
+    ### Use yt-dlp library to get the video URL, instead of streamlink lib for better compatibility
+    ydl_opts = {
+        'quiet': True,
+        'skip_download': True,
+        'format': 'bestvideo+bestaudio/best',
+        'cookiefile': 'cookies.txt',
+    }
+    with YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(youtube_url, download=False)
+        formats = info.get('formats', [])
+
+        # Filter formats matching the requested resolution
+        # format['format_note'] often contains resolution, or use 'height' attribute
+        matching_formats = []
+        for f in formats:
+            if f.get('format_note') == res or (f.get('height') and f.get('height') == int(res.replace('p', ''))):
+                matching_formats.append(f)
+
+        if not matching_formats:
+            return None
+
+        # Try to find progressive (combined) format first
+        for fmt in matching_formats:
+            if fmt.get('acodec') != 'none' and fmt.get('vcodec') != 'none':
+                return fmt.get('url')
+
+        # If no combined stream, return video only stream URL (similar to substreams[0])
+        for fmt in matching_formats:
+            if fmt.get('vcodec') != 'none':
+                return fmt.get('url')
+
+        # If no video stream found, fallback None
         return None
-    elif type(streams[res]) != streamlink.stream.ffmpegmux.MuxedStream:
-        return streams[res].url
-    return streams[res].substreams[0].url
 
 
 
@@ -70,7 +108,7 @@ def get_capture_from_url(youtube_url, res):
     :param res: The resolution of the video.
     :return: An OpenCV capture of the video.
     """
-    for i in range(3):
+    for i in range(30):
         try:
             url = get_url(youtube_url, res)
 

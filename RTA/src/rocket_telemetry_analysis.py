@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from loguru import logger
 
 # Constants
-base_dir = os.path.dirname(__file__)  # Directory where this script is located
+BASE_FOLDER = os.path.dirname(__file__)  # Directory where this script is located
 EPSILON = 0.1  # Time in seconds to avoid floating point precision issues
 
 
@@ -151,18 +151,18 @@ def process_scenarios(path_data, additional_data):
 
 def export_data(data_df, output_path, file_name):
   # Create the folder if it doesn't exist
-  if not os.path.exists(os.path.join(base_dir, output_path)):
-    os.makedirs(os.path.join(base_dir, output_path))
+  if not os.path.exists(os.path.join(BASE_FOLDER, output_path)):
+    os.makedirs(os.path.join(BASE_FOLDER, output_path))
 
   # Full file path
-  full_path = os.path.join(base_dir, output_path, file_name)
+  full_path = os.path.join(BASE_FOLDER, output_path, file_name)
 
   # Export DataFrame to CSV
   data_df.to_csv(full_path, index=False)
 
 def generate_subfigures(df, x_col, y_cols, fig_name, output_path):
   # Create output directory if it doesn't exist
-  full_output_path = os.path.join(base_dir, output_path)
+  full_output_path = os.path.join(BASE_FOLDER, output_path)
   if not os.path.exists(full_output_path):
       os.makedirs(full_output_path)
 
@@ -194,6 +194,7 @@ def generate_subfigures(df, x_col, y_cols, fig_name, output_path):
     # Compute and show mean
     if not y_vals.empty:
       mean_val = y_vals.mean()
+      median_val = y_vals.median()
       std_val = y_vals.std()
       max_val = y_vals.max()
       min_val = y_vals.min()
@@ -203,6 +204,7 @@ def generate_subfigures(df, x_col, y_cols, fig_name, output_path):
           f"{y_col}\n"
           f"Nº Sample: {count_val}\n"
           f"Mean {mean_val:.2f}\n"
+          f"Median: {median_val:.2f}\n"
           f"Std Dev: {std_val:.3f}\n"
           f"Max: {max_val:.2f}\n"
           f"Min: {min_val:.2f}"
@@ -231,7 +233,7 @@ def generate_subfigures(df, x_col, y_cols, fig_name, output_path):
 
 def generate_figure(df, x_col, y_col, fig_name, output_path):
   # Create output directory if it doesn't exist
-  full_output_path = os.path.join(base_dir, output_path)
+  full_output_path = os.path.join(BASE_FOLDER, output_path)
   if not os.path.exists(full_output_path):
       os.makedirs(full_output_path)
 
@@ -254,6 +256,7 @@ def generate_figure(df, x_col, y_col, fig_name, output_path):
   # Compute stats
   if not y_vals.empty:
       mean_val = y_vals.mean()
+      median_val = y_vals.median()
       std_val = y_vals.std()
       max_val = y_vals.max()
       min_val = y_vals.min()
@@ -263,6 +266,7 @@ def generate_figure(df, x_col, y_col, fig_name, output_path):
           f"{y_col}\n"
           f"Nº Sample: {count_val}\n"
           f"Mean: {mean_val:.2f}\n"
+          f"Median: {median_val:.2f}\n"
           f"Std Dev: {std_val:.3f}\n"
           f"Max: {max_val:.2f}\n"
           f"Min: {min_val:.2f}"
@@ -287,6 +291,23 @@ def generate_figure(df, x_col, y_col, fig_name, output_path):
   plt.savefig(f'{fig_path}.png', dpi=300)
   plt.close()
 
+def generate_plots_per_mission(df, mission_type, output_path):
+  # Plots for MECO
+  generate_subfigures(df, 'MissionName', 
+      ['MECO_Time_(s)', 'MECO_Alt_(km)', 'MECO_Vel_(m/s)', 'MECO_Elev_(deg)'], 
+      f'MECO Parameters - {mission_type}', 
+      output_path)
+  
+  #Plots for SECO
+  generate_subfigures(df, 'MissionName', 
+      ['SECO_Time_(s)', 'SECO_Alt_(km)', 'SECO_Vel_(m/s)', 'SECO_Elev_(deg)'], 
+      f'SECO Parameters - {mission_type}', 
+      output_path)
+  
+  # Plots for Stage-1 Apogee
+  generate_figure(df, 'MissionName', 'Stage1_Apogee_(km)', 
+      f'Stage-1 Apogee - {mission_type}', output_path)
+
 
 
 def main():
@@ -297,10 +318,10 @@ def main():
   source_url = "https://raw.githubusercontent.com/shahar603/Telemetry-Data/master/Laucnhes.json"
   
   # Generated .csv file and plots
-  output_path = '../Output/RTA-01'
+  output_path = '../Output/RTA-01.2'
   
   # Import .csv files
-  data_to_load_path = "../Output/RTA-01/SpaceX_RTA_01.csv"
+  data_to_load_path = "../Output/RTA-01.2/SpaceX_RTA_01.4.csv"
 
   # To be completed manually after generate the .csv file
   additional_data = {
@@ -338,25 +359,19 @@ def main():
   elif mode == 'GEN_PLOT' or mode == 'PLOT':
     # Import data
     logger.info("Loading data from CSV file...")
-    data_loaded_df = pd.read_csv(os.path.join(base_dir, data_to_load_path))
+    data_loaded_df = pd.read_csv(os.path.join(BASE_FOLDER, data_to_load_path), sep=',')
 
     # Plot data
     logger.info("Plotting data...")
 
-    # Plots for MECO
-    generate_subfigures(data_loaded_df, 'MissionName', 
-        ['MECO_Time_(s)', 'MECO_Alt_(km)', 'MECO_Vel_(m/s)', 'MECO_Elev_(deg)'], 
-        'MECO Parameters', output_path)
+    # Plot LEO, SSO missions
+    generate_plots_per_mission(data_loaded_df[data_loaded_df['OrbitType'].isin(['LEO', 'SSO'])],
+                              'LEO, SSO', output_path)
     
-    #Plots for SECO
-    generate_subfigures(data_loaded_df, 'MissionName', 
-        ['SECO_Time_(s)', 'SECO_Alt_(km)', 'SECO_Vel_(m/s)', 'SECO_Elev_(deg)'], 
-        'SECO Parameters', output_path)
-    
-    # Plots for Stage-1 Apogee
-    generate_figure(data_loaded_df, 'MissionName', 'Stage1_Apogee_(km)', 
-        'Stage-1 Apogee', output_path)
-  
+    # Plot MEO, GTO, GEO, HEO missions
+    generate_plots_per_mission(data_loaded_df[data_loaded_df['OrbitType'].isin(['MEO', 'GTO', 'GEO', 'HEO'])],
+                              'MEO, GTO, GEO, HEO', output_path)
+
 
 #
 # Main

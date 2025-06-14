@@ -10,9 +10,13 @@ import os.path
 import cv2
 
 
-
-CONFIG_FILE_PATH = '../ConfigFiles/spacex/new_spacex.json'
-
+#############################################################
+### COnfiguration
+#############################################################
+BASE_FOLDER = os.path.dirname(__file__)  # Directory where this script is located
+CONFIG_FILE_PATH = os.path.join(BASE_FOLDER, '../ConfigFiles/spacex/new_spacex.json')
+# CONFIG_FILE_PATH = '../ConfigFiles/spacex/new_spacex.json'
+OUTOUT_FOLDER = os.path.join(BASE_FOLDER, '../Output')
 
 KMH = 3.6
 DECIMAL_CONVERSION = 10
@@ -22,9 +26,9 @@ ANCHOR_SEARCH_START_TIME_FRACTION = 0.7
 ANCHOR_SEARCH_END_TIME_FRACTION = 1
 LAUNCH_VELOCITY = 0
 
-
-
-
+#############################################################
+### Internal functions
+#############################################################
 def check_data(prev_velocity, prev_time, cur_velocity, cur_time, prev_alt, cur_alt):
     return prev_time == cur_time or \
            fabs((cur_velocity - prev_velocity) / (cur_time - prev_time)) < 84 and \
@@ -64,8 +68,6 @@ def decimal_point_conversion(digit_pos_list):
         return True
     
     return 1.2*distances[-2] < distances[-1]
-
-
 
 def get_data(cap, file, t0, out, name, live):
     dt = 1 / cap.get(cv2.CAP_PROP_FPS)
@@ -173,7 +175,6 @@ def get_data(cap, file, t0, out, name, live):
     cv2.destroyAllWindows()
     time_file.close()
 
-
 def set_args():
     # Parse command line arguments.
     parser = argparse.ArgumentParser(
@@ -201,10 +202,18 @@ def set_args():
     return args
 
 
+#############################################################
+### Main function
+#############################################################
 def main():
     args = set_args()
 
-    dest = args.destination_path + '.json'
+    # Create output directory if it doesn't exist
+    full_output_folder = os.path.join(OUTOUT_FOLDER, args.destination_path)
+    if not os.path.exists(full_output_folder):
+        os.makedirs(full_output_folder)
+
+    dest = os.path.join(full_output_folder, args.destination_path + '_raw_data.json')
 
     if os.path.isfile(dest) and not args.force:
         if input("'%s' already exists. Do you want to override it? [y/n]: " % args.destination_path) != 'y':
@@ -214,13 +223,13 @@ def main():
     file = open(dest, 'w')
     cap = extract_video.get_capture(args.capture_path)
 
-    # if cap is None or cap.get(cv2.CAP_PROP_FPS) == 0:
-    #     if extract_video.youtube_url_validation(args.capture_path):
-    #         print("Cannot access video in URL. Please check the URL is a valid YouTube video")
-    #         exit(2)
+    if cap is None or cap.get(cv2.CAP_PROP_FPS) == 0:
+        if extract_video.youtube_url_validation(args.capture_path):
+            print("Cannot access video in URL. Please check the URL is a valid YouTube video")
+            exit(2)
 
-    #     print("Cannot access video in file. Please make sure the path to the file is valid")
-    #     exit(3)
+        print("Cannot access video in file. Please make sure the path to the file is valid")
+        exit(3)
 
     get_data(cap, file, to_float(args.launch_time), args.out, args.destination_path, args.live)
 
