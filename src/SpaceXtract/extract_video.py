@@ -4,6 +4,8 @@ import os
 import streamlink
 from time import sleep
 from yt_dlp import YoutubeDL
+from pytube import YouTube
+from pytube.exceptions import VideoUnavailable
 
 
 def youtube_url_validation(url):
@@ -18,8 +20,9 @@ def youtube_url_validation(url):
         '(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})')
 
     youtube_regex_match = re.match(youtube_regex, url)
-
-    return youtube_regex_match is not None
+    flag = youtube_regex_match is not None
+    
+    return flag
 
 
 
@@ -68,8 +71,7 @@ def get_url(youtube_url, res):
     ydl_opts = {
         'quiet': True,
         'skip_download': True,
-        'format': 'bestvideo+bestaudio/best',
-        'cookiefile': 'cookies.txt',
+        'format': 'bestvideo',
     }
     with YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(youtube_url, download=False)
@@ -98,6 +100,69 @@ def get_url(youtube_url, res):
         # If no video stream found, fallback None
         return None
 
+# def get_url(youtube_url, res):
+#     """
+#     Gets a direct URL to the video.
+#     :param youtube_url: The URL of the video.
+#     :param res: The resolution of the video (e.g., '720p', '480p').
+#     :return: a string of the direct URL of the YouTube video, or None if not found.
+#     """
+#     try:
+#         yt = YouTube(youtube_url)
+#     except VideoUnavailable:
+#         print("Error: Video is unavailable.")
+#         return None
+#     except Exception as e:
+#         print(f"Error initializing YouTube object: {e}")
+#         return None
+
+#     try:
+#         stream = yt.streams.filter(progressive=True, res=res).first()
+#         if stream:
+#             return stream.url
+#         else:
+#             print(f"No stream available at resolution: {res}")
+#             return None
+#     except Exception as e:
+#         print(f"Error retrieving stream: {e}")
+#         return None
+
+# def get_url(youtube_url, res):
+#     """
+#     Gets a direct URL to the video using yt_dlp.
+#     :param youtube_url: The URL of the video.
+#     :param res: The resolution of the video (e.g., '720p', '480p').
+#     :return: a string of the direct URL of the YouTube video, or None if not found.
+#     """
+#     resolution_value = res[:-1]  # '720p' -> '720'
+    
+#     ydl_opts = {
+#         'quiet': True,
+#         'skip_download': True,
+#         'noplaylist': True,
+#         'format': f'bestvideo[height={resolution_value}]+bestaudio/best[height={resolution_value}]',
+#     }
+
+#     try:
+#         with YoutubeDL(ydl_opts) as ydl:
+#             info = ydl.extract_info(youtube_url, download=False)
+
+#             # Check 'requested_downloads' (for merged formats)
+#             requested = info.get('requested_downloads')
+#             if requested and isinstance(requested, list):
+#                 urls = [stream.get('url') for stream in requested if 'url' in stream]
+#                 if urls:
+#                     return urls[0]  # return the first valid stream url
+
+#             # Fallback to direct url
+#             if 'webpage_url' in info:
+#                 return info['webpage_url']
+
+#             print("No stream URL found.")
+#             return None
+#     except Exception as e:
+#         print(f"Error retrieving stream: {e}")
+#         return None
 
 
 
@@ -111,6 +176,7 @@ def get_capture_from_url(youtube_url, res):
     for i in range(30):
         try:
             url = get_url(youtube_url, res)
+            sleep(5)
 
             if url is None:
                 continue

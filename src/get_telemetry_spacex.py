@@ -224,7 +224,7 @@ def main():
     cap = extract_video.get_capture(args.capture_path)
 
     if cap is None or cap.get(cv2.CAP_PROP_FPS) == 0:
-        if extract_video.youtube_url_validation(args.capture_path):
+        if extract_video.youtube_url_validation(args.capture_path) == False:
             print("Cannot access video in URL. Please check the URL is a valid YouTube video")
             exit(2)
 
