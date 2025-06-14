@@ -39,7 +39,7 @@ def get_capture(cap_path):
     if flag == True:
         return get_capture_from_url(cap_path, '1080p')
 
-    return cv2.VideoCapture(cap_path)
+    return cv2.VideoCapture(cap_path), None
 
 
 def is_live(cap):
@@ -85,20 +85,20 @@ def get_url(youtube_url, res):
                 matching_formats.append(f)
 
         if not matching_formats:
-            return None
+            return None, info
 
         # Try to find progressive (combined) format first
         for fmt in matching_formats:
             if fmt.get('acodec') != 'none' and fmt.get('vcodec') != 'none':
-                return fmt.get('url')
+                return fmt.get('url'), info
 
         # If no combined stream, return video only stream URL (similar to substreams[0])
         for fmt in matching_formats:
             if fmt.get('vcodec') != 'none':
-                return fmt.get('url')
+                return fmt.get('url'), info
 
         # If no video stream found, fallback None
-        return None
+        return None, info
 
 # def get_url(youtube_url, res):
 #     """
@@ -175,7 +175,7 @@ def get_capture_from_url(youtube_url, res):
     """
     for i in range(30):
         try:
-            url = get_url(youtube_url, res)
+            url, info = get_url(youtube_url, res)
             sleep(5)
 
             if url is None:
@@ -184,8 +184,8 @@ def get_capture_from_url(youtube_url, res):
             cap = cv2.VideoCapture(url)
 
             if cap is not None:
-                return cap
+                return cap, info
         except:
             pass
 
-    return None
+    return None, None

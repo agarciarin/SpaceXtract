@@ -16,7 +16,7 @@ import cv2
 BASE_FOLDER = os.path.dirname(__file__)  # Directory where this script is located
 CONFIG_FILE_PATH = os.path.join(BASE_FOLDER, '../ConfigFiles/spacex/new_spacex.json')
 # CONFIG_FILE_PATH = '../ConfigFiles/spacex/new_spacex.json'
-OUTOUT_FOLDER = os.path.join(BASE_FOLDER, '../Output')
+OUTPUT_FOLDER = os.path.join(BASE_FOLDER, '../Output')
 
 KMH = 3.6
 DECIMAL_CONVERSION = 10
@@ -208,12 +208,29 @@ def set_args():
 def main():
     args = set_args()
 
+    # Extract video capture and video information
+    cap, info = extract_video.get_capture(args.capture_path)
+
+    # Extract info
+    date = info['release_date'] # Format: YYYYMMDD
+    title = '-'.join(info['title'].strip().split())
+
+    # Set scenario name
+    if 'test' in args.destination_path.lower():
+        scenario_name = args.destination_path
+    else:
+        scenario_name = date + '_' + title
+
+    # Launch time
+    launch_time = args.launch_time
+
     # Create output directory if it doesn't exist
-    full_output_folder = os.path.join(OUTOUT_FOLDER, args.destination_path)
+    full_output_folder = os.path.join(OUTPUT_FOLDER, scenario_name)
     if not os.path.exists(full_output_folder):
         os.makedirs(full_output_folder)
 
-    dest = os.path.join(full_output_folder, args.destination_path + '_raw_data.json')
+    dest = os.path.join(full_output_folder, 
+                        scenario_name + '_' + launch_time + '_raw_data.json')
 
     if os.path.isfile(dest) and not args.force:
         if input("'%s' already exists. Do you want to override it? [y/n]: " % args.destination_path) != 'y':
@@ -221,7 +238,6 @@ def main():
             exit(4)
 
     file = open(dest, 'w')
-    cap = extract_video.get_capture(args.capture_path)
 
     if cap is None or cap.get(cv2.CAP_PROP_FPS) == 0:
         if extract_video.youtube_url_validation(args.capture_path) == False:
