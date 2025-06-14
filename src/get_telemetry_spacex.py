@@ -14,9 +14,11 @@ import cv2
 ### COnfiguration
 #############################################################
 BASE_FOLDER = os.path.dirname(__file__)  # Directory where this script is located
+OUTPUT_FOLDER = os.path.join(BASE_FOLDER, '../Output')
+
+# CONFIG_FILE_PATH = os.path.join(BASE_FOLDER, '../ConfigFiles/spacex/spacex.json')
 CONFIG_FILE_PATH = os.path.join(BASE_FOLDER, '../ConfigFiles/spacex/new_spacex.json')
 # CONFIG_FILE_PATH = '../ConfigFiles/spacex/new_spacex.json'
-OUTPUT_FOLDER = os.path.join(BASE_FOLDER, '../Output')
 
 KMH = 3.6
 DECIMAL_CONVERSION = 10
