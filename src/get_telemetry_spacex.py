@@ -213,9 +213,19 @@ def main():
     # Extract video capture and video information
     cap, info = extract_video.get_capture(args.capture_path)
 
-    # Extract info
-    date = info['release_date'] # Format: YYYYMMDD
-    title = '-'.join(info['title'].strip().split())
+    # Extract date
+    if 'release_date' in info:
+        date = info['release_date'] # Format: YYYYMMDD
+    elif 'upload_date' in info:
+        date = info['upload_date'] # Format: YYYYMMDD
+    else:
+        date = 'unknown-date'
+
+    # Extract title
+    if 'title' in info:
+        title = '-'.join(info['title'].strip().split())
+    else:
+        title = 'unknown-title'
 
     # Set scenario name: 'date_title'
     if 'test' in args.destination_path.lower():
