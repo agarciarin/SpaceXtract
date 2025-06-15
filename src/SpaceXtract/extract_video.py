@@ -72,6 +72,11 @@ def get_url(youtube_url, res):
         'quiet': True,
         'skip_download': True,
         'format': 'bestvideo',
+        # 'cookies': 'D:/Alberto/Inventos/SpaceShip/workspace/SpaceXtract/Cookies/cookies_youtube01.txt',
+        # 'http_headers': {
+        #     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+        #     'Accept-Language': 'en-US,en;q=0.9',
+        # },
     }
     with YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(youtube_url, download=False)

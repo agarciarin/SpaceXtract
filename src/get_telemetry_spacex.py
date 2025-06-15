@@ -16,8 +16,8 @@ import cv2
 BASE_FOLDER = os.path.dirname(__file__)  # Directory where this script is located
 OUTPUT_FOLDER = os.path.join(BASE_FOLDER, '../Output')
 
-# CONFIG_FILE_PATH = os.path.join(BASE_FOLDER, '../ConfigFiles/spacex/spacex.json')
-CONFIG_FILE_PATH = os.path.join(BASE_FOLDER, '../ConfigFiles/spacex/new_spacex.json')
+CONFIG_FILE_PATH_STAGE1 = os.path.join(BASE_FOLDER, '../ConfigFiles/spacex/new_spacex_stage1.json')
+CONFIG_FILE_PATH_STAGE2 = os.path.join(BASE_FOLDER, '../ConfigFiles/spacex/new_spacex_stage2.json')
 # CONFIG_FILE_PATH = '../ConfigFiles/spacex/new_spacex.json'
 
 KMH = 3.6
@@ -71,7 +71,7 @@ def decimal_point_conversion(digit_pos_list):
     
     return 1.2*distances[-2] < distances[-1]
 
-def get_data(cap, file, t0, out, name, live):
+def get_data(cap, file, t0, out, name, live, config_file_path):
     dt = 1 / cap.get(cv2.CAP_PROP_FPS)
 
     cur_time = 0
@@ -87,7 +87,7 @@ def get_data(cap, file, t0, out, name, live):
 
     time_file = open(name + '.meta', 'w')
 
-    with open(CONFIG_FILE_PATH, 'r') as spacex_dict_file:
+    with open(config_file_path, 'r') as spacex_dict_file:
         spacex_dict = json.load(spacex_dict_file)
 
     session = general_extract.RelativeExtract(spacex_dict, anchor_range=spacex_dict['anchor'][0])
@@ -217,7 +217,7 @@ def main():
     date = info['release_date'] # Format: YYYYMMDD
     title = '-'.join(info['title'].strip().split())
 
-    # Set scenario name
+    # Set scenario name: 'date_title'
     if 'test' in args.destination_path.lower():
         scenario_name = args.destination_path
     else:
@@ -230,16 +230,22 @@ def main():
     full_output_folder = os.path.join(OUTPUT_FOLDER, scenario_name)
     if not os.path.exists(full_output_folder):
         os.makedirs(full_output_folder)
+    
+    # Save video URL within the output folder
+    video_url_file = os.path.join(full_output_folder, scenario_name + '_video_url.txt')
+    with open(video_url_file, 'w') as f:
+        f.write(args.capture_path)
+    
+    # Set destination file path
+    dest_file = os.path.join(full_output_folder, 
+            scenario_name + '_' + launch_time + '_' + args.destination_path + '_raw_data.json')
 
-    dest = os.path.join(full_output_folder, 
-                        scenario_name + '_' + launch_time + '_raw_data.json')
-
-    if os.path.isfile(dest) and not args.force:
+    if os.path.isfile(dest_file) and not args.force:
         if input("'%s' already exists. Do you want to override it? [y/n]: " % args.destination_path) != 'y':
             print('exiting')
             exit(4)
 
-    file = open(dest, 'w')
+    file = open(dest_file, 'w')
 
     if cap is None or cap.get(cv2.CAP_PROP_FPS) == 0:
         if extract_video.youtube_url_validation(args.capture_path) == False:
@@ -249,7 +255,15 @@ def main():
         print("Cannot access video in file. Please make sure the path to the file is valid")
         exit(3)
 
-    get_data(cap, file, to_float(args.launch_time), args.out, args.destination_path, args.live)
+    # Choose configuration file based on the stage
+    if 'stage2' in args.destination_path.lower():
+        config_file_path = CONFIG_FILE_PATH_STAGE2
+    # Stage1 or default
+    else:
+        config_file_path = CONFIG_FILE_PATH_STAGE1
+
+    # Get data
+    get_data(cap, file, to_float(args.launch_time), args.out, args.destination_path, args.live, config_file_path)
 
 
 if __name__ == '__main__':

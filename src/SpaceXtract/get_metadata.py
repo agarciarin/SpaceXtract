@@ -6,6 +6,7 @@ from math import fabs
 from collections import OrderedDict
 from os.path import splitext
 import scipy.signal as signal
+import sys
 
 G = 6.67408*10**-11
 M = 5.972*10**24
@@ -178,9 +179,9 @@ def get_entry(data):
     return start_index, end_index
 
 
-file_name = r'C:\Users\USER\Desktop\SpaceXtract\Telemetry\SES-11\stage1.json'
+# file_name = r'C:\Users\USER\Desktop\SpaceXtract\Telemetry\SES-11\stage1.json'
 
-file = open(file_name, 'r')
+file = open(sys.argv[1], 'r')
 data = read_list(file)
 
 
@@ -277,7 +278,7 @@ if final_stage == 2:
 
 file.seek(0, 0)
 i = 0
-with open(splitext(file_name)[0] + ' MECO.json', 'w') as f:
+with open(splitext(sys.argv[2])[0] + ' MECO.json', 'w') as f:
     for line in file:
         if i > meco_index:
             break

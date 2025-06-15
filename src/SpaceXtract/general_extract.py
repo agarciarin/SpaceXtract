@@ -4,8 +4,6 @@ from math import fabs
 import os
 
 
-
-
 class BaseExtract:
     """
     Extract data from frames when the location of the data is known and is constant
@@ -390,16 +388,6 @@ class BaseExtract:
         gap, number = self.image_to_number(roi, self.image_dict[key][1], self.image_dict[key][2], self.image_dict[key][3], decimal_func)
 
         return gap, number
-
-
-
-
-
-
-
-
-
-
 
 
 class RelativeExtract(BaseExtract):

@@ -1,7 +1,8 @@
 import numpy as np
 import json
 
-from pandas.util.testing import all_timeseries_index_generator
+import pandas as pd
+# from pandas.testing import all_timeseries_index_generator
 from scipy.signal import savgol_filter
 from scipy.optimize import curve_fit
 import scipy
@@ -263,7 +264,12 @@ def get_atmos_data(altitude):
 
 
 def get_q(velocity, altitude):
-    return 0.5*get_atmos_data(1000*altitude)[-1]*velocity**2
+    if altitude < 85:
+        q = 0.5*get_atmos_data(1000*altitude)[-1]*velocity**2
+    else:
+        q = 0
+
+    return q
 
 
 
