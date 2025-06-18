@@ -264,7 +264,7 @@ def get_atmos_data(altitude):
 
 
 def get_q(velocity, altitude):
-    if altitude < 85:
+    if (altitude < 84):
         q = 0.5*get_atmos_data(1000*altitude)[-1]*velocity**2
     else:
         q = 0

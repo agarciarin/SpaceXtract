@@ -3,6 +3,7 @@ import os
 import requests
 import pandas as pd
 import matplotlib.pyplot as plt
+import json
 from loguru import logger
 
 # Constants
@@ -29,6 +30,69 @@ def load_json_from_url(url):
     else:
       return None
       # raise Exception(f"Failed to load data from {url}, status code: {response.status_code}")
+
+# def load_json_form_local(source_local):
+#   data = {}
+#   for mission in os.listdir(source_local):
+#     mission_path = os.path.join(source_local, mission)
+#     json_path = os.path.join(mission_path, "JSON")
+
+#     if not os.path.isdir(json_path):
+#       continue
+
+#     json_data = {}
+#     for file_name in os.listdir(json_path):
+#       if file_name.endswith(".json"):
+#         file_path = os.path.join(json_path, file_name)
+#         try:
+#           with open(file_path, "r") as f:
+#             json_data[file_name] = json.load(f)
+#         except Exception as e:
+#           print(f"Failed to load {file_path}: {e}")
+
+#     if json_data:
+#       data[mission] = {"JSON": json_data}
+
+#   return data
+
+def load_json_form_local(source_local):
+  data = {}
+  for mission in os.listdir(source_local):
+    mission_path = os.path.join(source_local, mission)
+    json_path = os.path.join(mission_path, "JSON")
+
+    if not os.path.isdir(json_path):
+      continue
+
+    json_data = {}
+    for file_name in os.listdir(json_path):
+      if file_name.endswith(".json"):
+        file_path = os.path.join(json_path, file_name)
+        try:
+          with open(file_path, "r") as f:
+            content = json.load(f)
+          # Map file names to your required keys
+          if file_name == "ABS-2A raw.json":
+            json_data['raw'] = content
+          elif file_name == "analysed.json":
+            json_data['analysed'] = content
+          elif file_name == "events.json":
+            json_data['events'] = content
+          elif file_name == "stage2 raw.json":
+            json_data['stage2'] = content
+          elif file_name == "stages.json":
+            json_data['stages'] = content
+        except Exception as e:
+          print(f"Failed to load {file_path}: {e}")
+
+    if json_data:
+      data[mission] = {
+        "mission_name": mission,
+        **json_data
+      }
+
+  return data
+
 
 def get_data(df, time):
   data = []
@@ -67,7 +131,7 @@ def get_apogee(df):
 
   return apogee
 
-def process_scenarios(path_data, additional_data):
+def process_scenarios_online(path_data, additional_data):
   #Columns for the DataFrame
   columns = [
     "Status", "Company", "Vehicle", "MissionName", "OrbitType", "Date",
@@ -103,7 +167,6 @@ def process_scenarios(path_data, additional_data):
     seco_time = events['seco1']
 
     # Compute stage-1 parameters
-    #TODO
     if stage1_df.empty == False:
       stage1_apogee = get_apogee(stage1_df)
 
@@ -148,6 +211,100 @@ def process_scenarios(path_data, additional_data):
     data_df.loc[len(data_df)] = data_row
 
   return data_df
+
+def process_scenarios_local(launch_data, additional_data):
+  #Columns for the DataFrame
+  columns = [
+    "Status", "Company", "Vehicle", "MissionName", "OrbitType", "Date",
+    "Stage1_Apogee_(km)",
+    "MECO_Time_(s)", "MECO_Alt_(km)", "MECO_Vel_(m/s)", "MECO_Elev_(deg)", 
+    "SECO_Time_(s)", "SECO_Alt_(km)", "SECO_Vel_(m/s)", "SECO_Elev_(deg)"
+  ]
+  
+  data_df = pd.DataFrame(columns=columns)
+
+  #Loop through each scenario in the path_data
+  for mission_name, scenario in launch_data.items():
+    # print("agrn_Scenario:", scenario['mission_name'])
+
+    # Initialize times and stage-1 apogee
+    meco_time = -1
+    seco_time = -1
+    stage1_apogee = -1
+
+    #Fill Common data
+    data_common = [additional_data['Company'], additional_data['Vehicle'], 
+                   scenario['mission_name'], additional_data['OrbitType'],
+                   additional_data['Date']]
+
+    #Extract the json data for each scenario
+    if 'analysed' in scenario:
+      stages_analysed_df = pd.DataFrame(scenario['analysed'])
+    else:
+      stages_analysed_df = pd.DataFrame()
+
+    if 'stage1' in scenario:
+      stage1_df = pd.DataFrame(scenario['stage1'])
+    else:
+      stage1_df = pd.DataFrame()
+    
+    if 'stage2' in scenario:
+      stage2_df = pd.DataFrame(scenario['stage2'])
+    else:
+      stage2_df = pd.DataFrame()
+    
+    events = scenario['events']
+
+    # Get MECO and SECO times from the events
+    meco_time = events['meco']
+    seco_time = events['seco1']
+
+    # Compute stage-1 parameters
+    if stage1_df.empty == False:
+      stage1_apogee = get_apogee(stage1_df)
+
+    # Computes MECO data from stages_analysed_df
+    if stages_analysed_df.empty == False and meco_time != None:
+      data_meco = get_data(stages_analysed_df, meco_time)
+
+    #Computes MECO data from stage1_df
+    elif stage1_df.empty == False and meco_time != None:
+      data_meco = get_data(stage1_df, meco_time)
+    
+    # Default
+    else:
+      data_meco = [-1, -1, -1]
+
+    # Computes SECO data from stages_analysed_df
+    if stages_analysed_df.empty == False and seco_time != None:
+      data_seco = get_data(stages_analysed_df, seco_time)
+
+    #Computes SECO data from stage2_df
+    elif stage2_df.empty == False and seco_time != None:
+      data_seco = get_data(stage2_df, seco_time)
+    
+    # Default
+    else:
+      data_seco = [-1, -1, -1]
+
+    # Update the MECO and SECO times
+    if meco_time is None:
+      meco_time = -1
+    if seco_time is None:
+      seco_time = -1
+
+    # Set status of the scenario
+    if (meco_time == -1) and (data_meco == [-1, -1, -1]):
+      status = 'False'
+    else:
+      status = 'True'
+
+    # Save data in the DataFrame
+    data_row = [status] + data_common + [stage1_apogee] + [meco_time] + data_meco + [seco_time] + data_seco 
+    data_df.loc[len(data_df)] = data_row
+
+  return data_df
+
 
 def export_data(data_df, output_path, file_name):
   # Create the folder if it doesn't exist
@@ -230,6 +387,7 @@ def generate_subfigures(df, x_col, y_cols, fig_name, output_path):
   fig_path = os.path.join(full_output_path, fig_name)
   plt.savefig(f'{fig_path}.png', dpi=300)
   plt.close()
+  logger.info(f"Figure saved: {fig_path}.png")
 
 def generate_figure(df, x_col, y_col, fig_name, output_path):
   # Create output directory if it doesn't exist
@@ -290,6 +448,7 @@ def generate_figure(df, x_col, y_col, fig_name, output_path):
   fig_path = os.path.join(full_output_path, fig_name)
   plt.savefig(f'{fig_path}.png', dpi=300)
   plt.close()
+  logger.info(f"Figure saved: {fig_path}.png")
 
 def generate_plots_per_mission(df, mission_type, output_path):
   # Plots for MECO
@@ -316,12 +475,13 @@ def main():
   #########################################################################
   # Data source
   source_url = "https://raw.githubusercontent.com/shahar603/Telemetry-Data/master/Laucnhes.json"
+  source_local = "D:/Alberto/Inventos/SpaceShip/workspace/SpaceXtract/Input"
   
   # Generated .csv file and plots
-  output_path = '../Output/RTA-01.2'
+  output_path = '../Output/Data-01'
   
   # Import .csv files
-  data_to_load_path = "../Output/RTA-01.2/SpaceX_RTA_01.4.csv"
+  data_to_load_path = "../Output/Data-01/SpaceX_Data-03.csv"
 
   # To be completed manually after generate the .csv file
   additional_data = {
@@ -332,27 +492,44 @@ def main():
   }
 
   # Set the mode: 'GEN_PLOT', 'GEN', 'PLOT'
-  mode = 'PLOT' 
+  mode = 'PLOT'
+
+  # Set data source type: 'ONLINE', 'LOCAL'  
+  source_data = 'LOCAL'
 
   #########################################################################
   ### Execution
   #########################################################################
   # Data generation
   if mode == 'GEN_PLOT' or mode == 'GEN':
-    # Load the JSON data from the source URL
-    logger.info("Loading launch data from source URL...")
-    launch_data = load_json_from_url(source_url)
+    #Source is an online URL
+    if source_data == 'ONLINE':
+      # Load the JSON data from the source URL
+      logger.info("Loading launch data from source URL...")
+      launch_data = load_json_from_url(source_url)
 
-    # Process the scenarios
-    if launch_data is not None:
-      logger.info("Processing scenarios...")
-      data_df = process_scenarios(launch_data, additional_data)
-      logger.info("Scenarios processed successfully.")
-    else:
-      raise Exception("Failed to load launch data from the source URL.")
+      # Process the scenarios
+      if launch_data is not None:
+        logger.info("Processing scenarios...")
+        data_df = process_scenarios_online(launch_data, additional_data)
+        logger.info("Scenarios processed successfully.")
+      else:
+        raise Exception("Failed to load launch data from the source URL.")
     
+    # Source is a local directory
+    elif source_data == 'LOCAL':
+      launch_data = load_json_form_local(source_local)
+
+      # Process the scenarios
+      if launch_data is not None:
+        logger.info("Processing scenarios...")
+        data_df = process_scenarios_local(launch_data, additional_data)
+        logger.info("Scenarios processed successfully.")
+      else:
+        raise Exception("Failed to load launch data from the source URL.")
+
     # Export dataframe to CSV
-    export_data(data_df, output_path, file_name='SpaceX_RTA_01.csv')
+    export_data(data_df, output_path, file_name='SpaceX_RTA_02.csv')
     logger.info(f"Data exported successfully to {output_path}")
 
   # Plotting 

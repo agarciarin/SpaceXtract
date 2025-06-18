@@ -1,3 +1,14 @@
+# Main scripts in this repo:
+
+- src/get_telemetry_spacex.py get_telemetry_rocketlab.py -> Captures the telemetry from a youtube or given video for SpaceX or Rocket Lab. Generates raw data.
+
+- src/Analysis/analyse_raw_telemetry.py -> Generates the analysed data files, computes the vertical and horizontal velocity, the eleveation angle, the acceleration, dinamic pressure; base on the raw data.
+
+- src/SpaceXtract/get_metadata.py -> Computes the MECO parameters based on the analysed data previously computed.
+
+- RTA/src/rocket_telemetry_analysis.py -> Analyse MECO and SECO parameters from different missions and computes statistics. This scripts also generates some figures with the statistics and data of all missions.
+
+
 # SpaceXtract
 
 ![SpaceXtract gif](https://github.com/shahar603/SpaceXtract/blob/master/docs/SpaceXtract.gif)

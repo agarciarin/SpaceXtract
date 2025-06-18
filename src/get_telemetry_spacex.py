@@ -18,7 +18,7 @@ OUTPUT_FOLDER = os.path.join(BASE_FOLDER, '../Output')
 
 CONFIG_FILE_PATH_STAGE1 = os.path.join(BASE_FOLDER, '../ConfigFiles/spacex/new_spacex_stage1.json')
 CONFIG_FILE_PATH_STAGE2 = os.path.join(BASE_FOLDER, '../ConfigFiles/spacex/new_spacex_stage2.json')
-# CONFIG_FILE_PATH = '../ConfigFiles/spacex/new_spacex.json'
+CONFIG_FILE_PATH_CREW = os.path.join(BASE_FOLDER, '../ConfigFiles/spacex/spacex.json')
 
 KMH = 3.6
 DECIMAL_CONVERSION = 10
@@ -266,9 +266,13 @@ def main():
         exit(3)
 
     # Choose configuration file based on the stage
-    if 'stage2' in args.destination_path.lower():
+    if 'stage1' in args.destination_path.lower():
+        config_file_path = CONFIG_FILE_PATH_STAGE1
+    elif 'stage2' in args.destination_path.lower():
         config_file_path = CONFIG_FILE_PATH_STAGE2
-    # Stage1 or default
+    elif 'crew' in args.destination_path.lower():
+        config_file_path = CONFIG_FILE_PATH_CREW
+    # Default
     else:
         config_file_path = CONFIG_FILE_PATH_STAGE1
 
